@@ -53,6 +53,9 @@ type TraceOptions struct {
 
 	// DisableErrSkip, if set to true, will suppress driver.ErrSkip errors in spans.
 	DisableErrSkip bool
+
+	// Connect, if set to true, will add spans for opening new connections
+	Connect bool
 }
 
 // WithAllTraceOptions enables all available trace options.
@@ -72,6 +75,7 @@ var AllTraceOptions = TraceOptions{
 	LastInsertID: true,
 	Query:        true,
 	QueryParams:  true,
+	Connect:      true,
 }
 
 // WithOptions sets our ocsql tracing middleware options through a single
@@ -164,5 +168,12 @@ func WithDefaultAttributes(attrs ...trace.Attribute) TraceOption {
 func WithDisableErrSkip(b bool) TraceOption {
 	return func(o *TraceOptions) {
 		o.DisableErrSkip = b
+	}
+}
+
+// WithConnect will add spans for opening new connections if set to true.
+func WithConnect(b bool) TraceOption {
+	return func(o *TraceOptions) {
+		o.Connect = b
 	}
 }

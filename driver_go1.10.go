@@ -6,6 +6,8 @@ import (
 	"context"
 	"database/sql"
 	"database/sql/driver"
+
+	"go.opencensus.io/trace"
 )
 
 var errConnDone = sql.ErrConnDone
@@ -195,7 +197,24 @@ func (d ocDriver) OpenConnector(name string) (driver.Connector, error) {
 }
 
 func (d ocDriver) Connect(ctx context.Context) (driver.Conn, error) {
-	c, err := d.connector.Connect(ctx)
+	var err error
+	if d.options.Connect {
+		var span *trace.Span
+		ctx, span = trace.StartSpan(ctx, "sql:connect", trace.WithSpanKind(trace.SpanKindClient))
+		defer func() {
+			if err != nil {
+				span.SetStatus(trace.Status{
+					Code:    trace.StatusCodeUnavailable,
+					Message: err.Error(),
+				})
+			} else {
+				span.SetStatus(trace.Status{Code: trace.StatusCodeOK})
+			}
+			span.End()
+		}()
+	}
+	var c driver.Conn
+	c, err = d.connector.Connect(ctx)
 	if err != nil {
 		return nil, err
 	}
